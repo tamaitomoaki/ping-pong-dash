@@ -4,6 +4,9 @@
 1人の主催者(HOST)から複数の参加者(GUEST)に問いかけ<br>
 返答をリアルタイムで集計し、共有できるサービスです。
 
+#URL
+http://pingpong-dash.herokuapp.com/
+
 #使い方
 
 主催者が架空の部屋を作成し、<br>
