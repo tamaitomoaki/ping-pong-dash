@@ -16,11 +16,11 @@
                 <!-- form starts here -->
                 <form class="sign-up">
                     <div class="username">
-
-                        <input type="text" id="roomcode" placeholder="部屋番号" />
+                       <div class="sentence">オーナーが部屋番号<br>を発行します。<br>発行された<br><span>部屋番号</span>と<span>ニックネーム</span>を<br>入力して入室してください。</div>
+                        <input type="text" id="roomcode" placeholder="部屋番号を入力" />
                     </div>
                     <div class="password">
-                        <input type="text" id="username" placeholder="名前" />
+                        <input type="text" id="username" placeholder="ニックネームを入力" />
                     </div>
                     <p onclick={toWait} class="entry_room pointer">入室</p>
                     <a href="javascript:history.back();" class="Q_plus_minus">
@@ -33,11 +33,11 @@
         <div if={ vis==2 } class="top">
             <div class="content_center">
                 <div class="guest_select">
-                    <p>お待ち下さい</p>
+                    <p class="firstpage_sentence">お待ち下さい</p>
                 </div>
                 <!--    <p onclick={toClose} class="link">退室</p>-->
                 <!--    <a onclick={toClose} class="button button-border pointer margin_back">退室</a>-->
-                <p onclick={toClose}　class="getout pointer base_buttom">退室</p>
+<!--                <p onclick={toClose}　class="getout pointer base_buttom">退室</p>-->
             </div>
 
         </div>
@@ -128,11 +128,19 @@
 
             <div class="content_center">
                 <div class="wait">
-                    <p class="Behavior">お待ち下さい</p>
+                    <p class="Behavior" id="answers">お待ち下さい</p>
                     <div id="resultText">
+                        <table class="demo01" id="javascript_sample_table_1">
+                            <tbody id="javascript_sample_table_1_tbody">
+                                <tr each={textAnswer}>
+                                    <th>{Name}</th>
+                                    <td>{Answer}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <p onclick={toClose}　class="getout pointer base_buttom">退室</p>
+<!--                <p onclick={toClose}　class="getout pointer base_buttom">退室</p>-->
             </div>
         </div>
     </div>
@@ -149,6 +157,9 @@
         self.Room; //部屋番号
         self.answerFinish = false; //回答済みか判定
         var setAnswerTime = 0;
+        
+        //アレンジ、みんなの回答、を回答済みの人に表示する
+        self.textAnswer = [];//テキスト問題の回答の配列
 
         //----------------------------------------mount,socket.on受信
         this.on('mount', function() {
@@ -174,97 +185,130 @@
                 console.log("A");
             });
             self.socket.on('OtoG', function(data) {
-                //選択肢問題受信
-                if (data.type == 'select') {
-                    self.choice.length = 0;
-                    for (var i = 0; i < data.SN; i++) {
-                        self.choice[i] = {
-                            number: i + 1
-                        };
+                
+                
+                //送られてくるデータが配列の場合（みんなの回答をを手元で表示するため）
+                if(Object.prototype.toString.call(data) === '[object Array]'){
+                    
+                    if( self.answerFinish == true ){
+                        //回答済みの場合、みんなの回答を表示
+                        console.log(data);
+                        self.textAnswer.unshift({
+                            Name: data[0],
+                            Answer: data[1]
+                        });
+                        
+                        self.vis = 6;
+                        self.update();
+                        document.getElementById("answers").innerText = "みんなの回答";
+                        
+                    }else if(self.answerFinish == false){
+                        //まだ回答していない場合、みんなの回答をtextAnswerへ蓄積
+                        self.textAnswer.unshift({
+                            Name: data[0],
+                            Answer: data[1]
+                        });
                     }
-                    self.title = "選ぶ";
-                    console.log(self.choice);
-                    self.answerFinish = false; //未回答へ変更
-                    document.getElementById("header_under").style.backgroundColor = "#00a7ea";
-                    self.vis = 3;
-                    self.update();
-                }
-                //テキスト問題受信
-                if (data.type == 'text') {
-                    self.title = "テキスト入力";
-                    self.answerFinish = false; //未回答へ変更
-                    self.vis = 4;
-                    document.getElementById("header_under").style.backgroundColor = "#99CC00";
-                    self.update();
-                }
-                //事前作成済み、選択問題の受信
-                if (data.type == 'prebuild_select') {
-                    console.log(data);
-                    self.choice.length = 0;
-                    self.Q = data.Q; //問題文
-                    for (var i = 0; i < data.SN; i++) {
-                        self.choice[i] = {
-                            number: i + 1, //選択肢数
-                            content: data.QContent[i].Choice //項目
+                    
+                }else{
+                self.textAnswer =[];//みんなの回答をリセット
+                //送られてくるデータがオブジェクトの場合
+                    //選択肢問題受信
+                    if (data.type == 'select') {
+                        self.choice.length = 0;
+                        for (var i = 0; i < data.SN; i++) {
+                            self.choice[i] = {
+                                number: i + 1
+                            };
                         }
+                        self.title = "選ぶ";
+                        console.log(self.choice);
+                        self.answerFinish = false; //未回答へ変更
+                        document.getElementById("header_under").style.backgroundColor = "#00a7ea";
+                        self.vis = 3;
+                        self.update();
                     }
-                    self.answerFinish = false; //未回答へ変更
-                    document.getElementById("header_under").style.backgroundColor = "#00a7ea";
-                    self.vis = 3.1;
-                    self.update();
-                }
-                //事前作成済み、テキスト問題の受信
-                if (data.type == 'prebuild_text') {
-                    self.Q = data.Q;
-                    self.answerFinish = false; //未回答へ変更
-                    self.vis = 4.1;
-                    document.getElementById("header_under").style.backgroundColor = "#99CC00";
-                    self.update();
-                }
-                //問題文作成問題受信
-                if (data.type == 'createQ') {
-                    self.choice.length = 0;
-                    console.log(data.Time);
-                    setAnswerTime = data.Time;
-                    count = data.Time;
-                    timerID = setInterval(function() {
-                        document.getElementById("time").innerHTML = count;
-                        count--;
-                        if (count < 0) {
-                            alert("Time UP!");
-                            self.vis = 6;
-                            Answer = "未回答";
-                            self.answerFinish　 = true; //回答済みに変更
-                            clearInterval(timerID);
-                            self.update();
-                        }
-                    }, 1000);
-                    self.Q = data.Q; //問題文
-                    for (var i = 0; i < data.SN; i++) {
-                        self.choice[i] = {
-                            number: data.QContent[i].num + 1, //選択肢数
-                            content: data.QContent[i].content //項目
-                        }
+                    //テキスト問題受信
+                    if (data.type == 'text') {
+                        self.title = "テキスト入力";
+                        self.answerFinish = false; //未回答へ変更
+                        self.vis = 4;
+                        document.getElementById("header_under").style.backgroundColor = "#99CC00";
+                        self.update();
                     }
-                    self.title = "選ぶ";
-                    self.answerFinish = false; //未回答へ変更
-                    document.getElementById("header_under").style.backgroundColor = "#E34933";
-                    self.vis = 5;
-                    self.update();
-                }
-                //未回答だが回答締め切りされた場合
-                if (data.type == 'deadline') {
-                    self.vis = 6;
-                    Answer = "未回答";
-                    self.answerFinish　 = true; //回答済みに変更
-                    self.update();
+                    //事前作成済み、選択問題の受信
+                    if (data.type == 'prebuild_select') {
+                        console.log(data);
+                        self.choice.length = 0;
+                        self.Q = data.Q; //問題文
+                        for (var i = 0; i < data.SN; i++) {
+                            self.choice[i] = {
+                                number: i + 1, //選択肢数
+                                content: data.QContent[i].Choice //項目
+                            }
+                        }
+                        self.answerFinish = false; //未回答へ変更
+                        document.getElementById("header_under").style.backgroundColor = "#00a7ea";
+                        self.vis = 3.1;
+                        self.update();
+                    }
+                    //事前作成済み、テキスト問題の受信
+                    if (data.type == 'prebuild_text') {
+                        self.Q = data.Q;
+                        self.answerFinish = false; //未回答へ変更
+                        self.vis = 4.1;
+                        document.getElementById("header_under").style.backgroundColor = "#99CC00";
+                        self.update();
+                        
+                    }
+                    //問題文作成問題受信
+                    if (data.type == 'createQ') {
+                        self.choice.length = 0;
+                        console.log(data.Time);
+                        setAnswerTime = data.Time;
+                        count = data.Time;
+                        timerID = setInterval(function() {
+                            document.getElementById("time").innerHTML = count;
+                            count--;
+                            if (count < 0) {
+                                alert("Time UP!");
+                                self.vis = 6;
+                                Answer = "未回答";
+                                self.answerFinish　 = true; //回答済みに変更
+                                clearInterval(timerID);
+                                self.update();
+                            }
+                        }, 1000);
+                        self.Q = data.Q; //問題文
+                        for (var i = 0; i < data.SN; i++) {
+                            self.choice[i] = {
+                                number: data.QContent[i].num + 1, //選択肢数
+                                content: data.QContent[i].content //項目
+                            }
+                        }
+                        self.title = "選ぶ";
+                        self.answerFinish = false; //未回答へ変更
+                        document.getElementById("header_under").style.backgroundColor = "#E34933";
+                        self.vis = 5;
+                        self.update();
+                    }
+                    //未回答だが回答締め切りされた場合
+                    if (data.type == 'deadline') {
+                        self.vis = 6;
+                        Answer = "未回答";
+                        self.answerFinish　 = true; //回答済みに変更
+                        self.update();
 
+                    }
+                    //主催者退室した場合
+                    if (data.type == 'close') {
+                        alert('主催者が退室しました。本日はありがとうございました。')
+                        location.href = location.origin;
+                    }
+                    
                 }
-                //主催者退室した場合
-                if (data.type == 'close') {
-                    alert('主催者が退室しました。本日はありがとうございました。')
-                    location.href = location.origin;
-                }
+                
+                
 
 
             });
@@ -452,7 +496,7 @@
         /*      -----------------------------------ログイン*/
         
         .sign-up {
-            margin: 50px auto;
+/*            margin: 50px auto;*/
             width: 330px;
             padding: 33px 0px 33px;
             background: #f8f8f8;
@@ -504,8 +548,8 @@
             text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
             background: #00acee;
             box-shadow: 0 5px 0 #0092ca;
-            margin-top: 10px;
-            margin-bottom: 10px;
+            margin-top: 23px;
+            margin-bottom: 23px;
         }
         
         .buttonSelect:hover {
@@ -527,9 +571,10 @@
         .buttonCreate {
             position: relative;
             display: flex;
-            padding: 1em 0;
+            padding: 0.2em 0;
             color: #fff;
-            font-size: 2vw;
+            font-size: 30px;
+/*            font-size: 2vw;*/
             border-radius: 3px;
             text-align: left;
             line-height: 120%;
@@ -537,8 +582,8 @@
             text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.3);
             background: #00acee;
             box-shadow: 0 5px 0 #0092ca;
-            margin-top: 10px;
-            margin-bottom: 10px;
+            margin-top: 23px;
+            margin-bottom: 23px;
         }
         /*      退室ボタンのマージン*/
         
@@ -562,7 +607,7 @@
         
         .content_center {
             display: table-cell;
-            vertical-align: middle;
+            vertical-align: top;
         }
         
         .link {
@@ -615,7 +660,7 @@
         
         .guest_select {
             height: 70%;
-            margin-top: 20px;
+            margin-top: 70px;
             padding: 20px;
             margin-bottom: 15px;
         }
@@ -629,11 +674,13 @@
             margin-top: 20px;
             padding: 20px;
             margin-bottom: 15px;
+            width:60vw;
         }
         
         .Behavior {
             font-size: 20px;
             margin-bottom: 20px;
+            margin-top: 20px;
         }
         
         .Select_width {
@@ -715,7 +762,7 @@
                 font-size: 15px;
             }
             .buttonCreate {
-                font-size: 15px;
+                font-size: 30px;
             }
         }
         
@@ -804,5 +851,33 @@
         }
         
         a:active {}
+        
+/*        アレンジ*/
+        .sentence{
+            font-size:25px;
+            margin-bottom:30px;
+            text-align: left;
+            color: #565656;
+            border-left: 10px solid #ececec;
+            padding-left:15px;
+        }
+        .sentence span{
+            color:#285294;
+            font-weight: bold;
+        }
+        #javascript_sample_table_1_tbody th{
+            background:#D9EC92;
+            color:#525252;
+            padding:5px;
+        }
+        #javascript_sample_table_1_tbody td{
+            text-align: left;
+            color:#525252;
+            padding-left:10px;
+        }
+        
+        .firstpage_sentence{
+            margin-top:20px;
+        }
     </style>
 </guest>
